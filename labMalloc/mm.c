@@ -58,14 +58,13 @@ static void *heapExtension(size_t words)
     char *bp;
     size_t size;
 
-    // Allocate even number of words to maintain alignment
+    // Allocate evenly
     size = (words % 2) ? (words + 1) * WSIZE : words * WSIZE;
     if ((long)(bp = mem_sbrk(size)) == -1)
         return NULL;
 
 
     // Initialize free block header/footer and the epilogue header
-    // PUT_HDR_FTR(bp, size, 0);
     PUT_HDR_FTR(bp, size, 0);
     PUT(HDRP(NEXT_BLKP(bp)), PACK(0,1));
 
@@ -82,7 +81,6 @@ void *mm_malloc(size_t size)
     size_t extend_size; // amount to extend if no fit
     char *bp;
 
-    // ignore pointless calls
     if ( size == 0 ) return NULL;
 
     if ( size <= DSIZE )
@@ -109,12 +107,10 @@ static void *find_fit(size_t size)
 {
     if ( last_find == NULL )
     {
-        // find fit hasn't run yet. run from beginning to end of heap
         last_find = find_fit_from_to(size, NEXT_BLKP(heap_listp), mem_heap_hi());
         return last_find;
     }
 
-    // find fit from last find to end
 
     if ( (last_find = find_fit_from_to(size, NEXT_BLKP(last_find), mem_heap_hi())) == NULL )
         // didn't find anything from last find to end. run from beginning to last find
@@ -141,7 +137,7 @@ inline static void place(void *bp, size_t size)
 {
     size_t curr_size = GET_SIZE(HDRP(bp)); // current size
 
-    // If there is enough room for another block, we need to split.
+    // If there is enough room for another block, split.
     if ((curr_size - size) >= 2*DSIZE)
     {
         PUT_HDR_FTR(bp, size, 1);
@@ -159,7 +155,7 @@ inline static void place(void *bp, size_t size)
 void mm_free(void *bp)
 {
     size_t size;
-    // slight optimization. If it's already freed, skip the coalescing
+    // slight optimization.
     if ( GET_ALLOC(HDRP(bp)) == 0 )
         return;
 
